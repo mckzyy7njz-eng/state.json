@@ -1,0 +1,43 @@
+name: MOEX Price Alerts
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: moex-price-alerts
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run monitor
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python3 monitor.py
+
+      - name: Save state
+        run: |
+          git config user.name "moex-alert-bot"
+          git config user.email "actions@github.com"
+
+          git add alerts.json state.json
+
+          if git diff --cached --quiet; then
+            echo "Nothing changed"
+          else
+            git commit -m "Update alert state"
+            git pull --rebase
+            git push
+          fi
