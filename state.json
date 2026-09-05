@@ -1,6 +1,7 @@
 {
-  "telegram_offset": 869867471,
+  "telegram_offset": 869867479,
   "sides": {
-    "SBER:300": "below"
+    "SBER:300": "below",
+    "SBER:281": "above"
   }
 }
