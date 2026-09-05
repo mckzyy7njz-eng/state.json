@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: moex-price-alerts
-  cancel-in-progress: false
+  queue: max
 
 jobs:
   check:
@@ -20,6 +20,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Sync latest state
+        run: git pull --rebase origin main
 
       - name: Run monitor
         env:
@@ -38,6 +41,5 @@ jobs:
             echo "Nothing changed"
           else
             git commit -m "Update alert state"
-            git pull --rebase
-            git push
+            git push origin main
           fi
