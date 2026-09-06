@@ -1,4 +1,6 @@
 {
-  "telegram_offset": 869867485,
-  "sides": {}
+  "telegram_offset": 869867488,
+  "sides": {
+    "NVTK:850": "above"
+  }
 }
