@@ -2,5 +2,61 @@
   {
     "ticker": "NVTK",
     "level": 850.0
+  },
+  {
+    "ticker": "TATN",
+    "level": 420.0
+  },
+  {
+    "ticker": "SIBN",
+    "level": 370.0
+  },
+  {
+    "ticker": "LKOH",
+    "level": 3500.0
+  },
+  {
+    "ticker": "ROSN",
+    "level": 290.0
+  },
+  {
+    "ticker": "SBER",
+    "level": 260.0
+  },
+  {
+    "ticker": "DOMRF",
+    "level": 1900.0
+  },
+  {
+    "ticker": "T",
+    "level": 240.0
+  },
+  {
+    "ticker": "X5",
+    "level": 1750.0
+  },
+  {
+    "ticker": "IRAO",
+    "level": 2.1
+  },
+  {
+    "ticker": "MDMG",
+    "level": 1000.0
+  },
+  {
+    "ticker": "NMTP",
+    "level": 6.5
+  },
+  {
+    "ticker": "FESH",
+    "level": 45.0
+  },
+  {
+    "ticker": "GAZP",
+    "level": 84.0
+  },
+  {
+    "ticker": "VTBR",
+    "level": 50.0
   }
 ]

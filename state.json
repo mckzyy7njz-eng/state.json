@@ -1,6 +1,20 @@
 {
-  "telegram_offset": 869867488,
+  "telegram_offset": 869867502,
   "sides": {
-    "NVTK:850": "above"
+    "NVTK:850": "above",
+    "TATN:420": "above",
+    "SIBN:370": "above",
+    "LKOH:3500": "above",
+    "ROSN:290": "above",
+    "SBER:260": "above",
+    "DOMRF:1900": "above",
+    "T:240": "above",
+    "X5:1750": "above",
+    "IRAO:2.1": "above",
+    "MDMG:1000": "above",
+    "NMTP:6.5": "above",
+    "FESH:45": "above",
+    "GAZP:84": "above",
+    "VTBR:50": "above"
   }
 }
