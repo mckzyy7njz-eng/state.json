@@ -14,6 +14,7 @@ ALERTS_FILE = Path("alerts.json")
 def load_json(path, default):
     if not path.exists():
         return default
+
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
@@ -34,12 +35,14 @@ def telegram(method, params=None):
 
     if params:
         data = urllib.parse.urlencode(params).encode("utf-8")
-        req = urllib.request.Request(url, data=data)
+        request = urllib.request.Request(url, data=data)
     else:
-        req = urllib.request.Request(url)
+        request = urllib.request.Request(url)
 
-    with urllib.request.urlopen(req, timeout=20) as r:
-        return json.loads(r.read().decode("utf-8"))
+    with urllib.request.urlopen(request, timeout=20) as response:
+        return json.loads(
+            response.read().decode("utf-8")
+        )
 
 
 def send(text):
@@ -64,13 +67,17 @@ def get_price(ticker):
         "&marketdata.columns=SECID,LAST,MARKETPRICE"
     )
 
-    req = urllib.request.Request(
+    request = urllib.request.Request(
         url,
-        headers={"User-Agent": "moex-price-alert-bot/1.0"}
+        headers={
+            "User-Agent": "moex-price-alert-bot/1.0"
+        }
     )
 
-    with urllib.request.urlopen(req, timeout=20) as r:
-        obj = json.loads(r.read().decode("utf-8"))
+    with urllib.request.urlopen(request, timeout=20) as response:
+        obj = json.loads(
+            response.read().decode("utf-8")
+        )
 
     block = obj.get("marketdata", {})
     columns = block.get("columns", [])
@@ -114,26 +121,40 @@ def process_commands(alerts, state):
     changed = False
 
     for update in result.get("result", []):
-        state["telegram_offset"] = update["update_id"] + 1
+        update_id = update["update_id"]
+
+        # Сразу запоминаем, что update уже забрали.
+        state["telegram_offset"] = update_id + 1
+        save_json(STATE_FILE, state)
         changed = True
 
         message = update.get("message")
+
         if not message:
             continue
 
-        chat_id = str(message.get("chat", {}).get("id", ""))
+        chat_id = str(
+            message.get("chat", {}).get("id", "")
+        )
 
-        # Игнорируем всех, кроме владельца
+        # Игнорируем всех, кроме владельца.
         if chat_id != CHAT_ID:
             continue
 
-        text = (message.get("text") or "").strip()
+        text = (
+            message.get("text") or ""
+        ).strip()
+
         parts = text.split()
 
         if not parts:
             continue
 
-        command = parts[0].split("@")[0].lower()
+        command = (
+            parts[0]
+            .split("@")[0]
+            .lower()
+        )
 
         if command in ("/start", "/help"):
             send(
@@ -153,32 +174,47 @@ def process_commands(alerts, state):
             ticker = parts[1].upper()
 
             try:
-                level = float(parts[2].replace(",", "."))
+                level = float(
+                    parts[2].replace(",", ".")
+                )
             except ValueError:
-                send("Цена должна быть числом. Например: /add SBER 300.5")
+                send(
+                    "Цена должна быть числом. "
+                    "Например: /add SBER 300.5"
+                )
                 continue
 
             if level <= 0:
-                send("Цена должна быть больше нуля.")
+                send(
+                    "Цена должна быть больше нуля."
+                )
                 continue
 
             duplicate = any(
-                a["ticker"] == ticker and float(a["level"]) == level
+                a["ticker"] == ticker
+                and float(a["level"]) == level
                 for a in alerts
             )
 
             if duplicate:
-                send(f"ℹ️ {ticker} {level:g} уже есть.")
+                send(
+                    f"ℹ️ {ticker} {level:g} ₽ уже есть."
+                )
                 continue
 
             try:
                 price = get_price(ticker)
-            except Exception:
+            except Exception as e:
+                print(
+                    f"Price error {ticker}:",
+                    e
+                )
                 price = None
 
             if price is None:
                 send(
-                    f"❌ Не смог получить цену {ticker} на TQBR.\n"
+                    f"❌ Не смог получить цену "
+                    f"{ticker} на TQBR.\n"
                     "Проверь тикер."
                 )
                 continue
@@ -190,36 +226,60 @@ def process_commands(alerts, state):
                 }
             )
 
-            key = alert_key(ticker, level)
-            state.setdefault("sides", {})[key] = (
-                "above" if price >= level else "below"
+            key = alert_key(
+                ticker,
+                level
             )
 
-            save_json(ALERTS_FILE, alerts)
-            save_json(STATE_FILE, state)
+            state.setdefault(
+                "sides",
+                {}
+            )[key] = (
+                "above"
+                if price >= level
+                else "below"
+            )
+
+            save_json(
+                ALERTS_FILE,
+                alerts
+            )
+
+            save_json(
+                STATE_FILE,
+                state
+            )
 
             send(
-                f"✅ Добавлен {ticker} — {level:g} ₽\n"
+                f"✅ Добавлен {ticker} — "
+                f"{level:g} ₽\n"
                 f"Сейчас: {price:g} ₽"
             )
 
         elif command == "/del":
             if len(parts) != 3:
-                send("Формат: /del SBER 300")
+                send(
+                    "Формат: /del SBER 300"
+                )
                 continue
 
             ticker = parts[1].upper()
 
             try:
-                level = float(parts[2].replace(",", "."))
+                level = float(
+                    parts[2].replace(",", ".")
+                )
             except ValueError:
-                send("Цена должна быть числом.")
+                send(
+                    "Цена должна быть числом."
+                )
                 continue
 
             before = len(alerts)
 
             alerts[:] = [
-                a for a in alerts
+                a
+                for a in alerts
                 if not (
                     a["ticker"] == ticker
                     and float(a["level"]) == level
@@ -227,92 +287,182 @@ def process_commands(alerts, state):
             ]
 
             if len(alerts) == before:
-                send(f"ℹ️ Уровень {ticker} {level:g} не найден.")
+                send(
+                    f"ℹ️ Уровень "
+                    f"{ticker} {level:g} ₽ "
+                    "не найден."
+                )
                 continue
 
-            state.setdefault("sides", {}).pop(
-                alert_key(ticker, level),
+            state.setdefault(
+                "sides",
+                {}
+            ).pop(
+                alert_key(
+                    ticker,
+                    level
+                ),
                 None
             )
 
-            save_json(ALERTS_FILE, alerts)
-            save_json(STATE_FILE, state)
+            save_json(
+                ALERTS_FILE,
+                alerts
+            )
 
-            send(f"🗑 Удалён {ticker} — {level:g} ₽")
+            save_json(
+                STATE_FILE,
+                state
+            )
+
+            send(
+                f"🗑 Удалён "
+                f"{ticker} — {level:g} ₽"
+            )
 
         elif command == "/list":
             if not alerts:
-                send("Список уровней пуст.")
+                send(
+                    "Список уровней пуст."
+                )
                 continue
 
-            lines = ["📋 Активные уровни:"]
+            lines = [
+                "📋 Активные уровни:"
+            ]
 
             grouped = {}
 
-            for a in alerts:
-                grouped.setdefault(a["ticker"], []).append(
-                    float(a["level"])
+            for alert in alerts:
+                grouped.setdefault(
+                    alert["ticker"],
+                    []
+                ).append(
+                    float(
+                        alert["level"]
+                    )
                 )
 
             for ticker in sorted(grouped):
-                levels = sorted(grouped[ticker])
-                text_levels = ", ".join(f"{x:g}" for x in levels)
-                lines.append(f"{ticker}: {text_levels}")
+                levels = sorted(
+                    grouped[ticker]
+                )
 
-            lines.append(f"\nВсего: {len(alerts)}")
+                text_levels = ", ".join(
+                    f"{level:g}"
+                    for level in levels
+                )
 
-            send("\n".join(lines))
+                lines.append(
+                    f"{ticker}: "
+                    f"{text_levels}"
+                )
+
+            lines.append(
+                f"\nВсего: {len(alerts)}"
+            )
+
+            send(
+                "\n".join(lines)
+            )
 
         elif command == "/price":
             if len(parts) != 2:
-                send("Формат: /price SBER")
+                send(
+                    "Формат: /price SBER"
+                )
                 continue
 
             ticker = parts[1].upper()
 
             try:
                 price = get_price(ticker)
-            except Exception:
+            except Exception as e:
+                print(
+                    f"Price error {ticker}:",
+                    e
+                )
                 price = None
 
             if price is None:
-                send(f"❌ Не удалось получить цену {ticker}")
+                send(
+                    f"❌ Не удалось "
+                    f"получить цену {ticker}"
+                )
             else:
-                send(f"💰 {ticker}: {price:g} ₽")
+                send(
+                    f"💰 {ticker}: "
+                    f"{price:g} ₽"
+                )
+
+        else:
+            send(
+                "Неизвестная команда.\n"
+                "Используй /help"
+            )
 
     return changed
 
 
 def check_alerts(alerts, state):
-    sides = state.setdefault("sides", {})
+    sides = state.setdefault(
+        "sides",
+        {}
+    )
+
     changed = False
 
-    # Один запрос на тикер, даже если уровней много
-    tickers = sorted(set(a["ticker"] for a in alerts))
+    # Один запрос на тикер,
+    # даже если уровней несколько.
+    tickers = sorted(
+        set(
+            alert["ticker"]
+            for alert in alerts
+        )
+    )
 
     prices = {}
 
     for ticker in tickers:
         try:
-            prices[ticker] = get_price(ticker)
+            prices[ticker] = (
+                get_price(ticker)
+            )
         except Exception as e:
-            print(ticker, e)
+            print(
+                f"Price error {ticker}:",
+                e
+            )
             prices[ticker] = None
 
     for alert in alerts:
         ticker = alert["ticker"]
-        level = float(alert["level"])
-        price = prices.get(ticker)
+        level = float(
+            alert["level"]
+        )
+
+        price = prices.get(
+            ticker
+        )
 
         if price is None:
             continue
 
-        key = alert_key(ticker, level)
+        key = alert_key(
+            ticker,
+            level
+        )
 
-        new_side = "above" if price >= level else "below"
+        new_side = (
+            "above"
+            if price >= level
+            else "below"
+        )
+
         old_side = sides.get(key)
 
-        # Первый запуск: только запоминаем сторону.
+        # Первый запуск:
+        # просто запоминаем сторону.
         if old_side is None:
             sides[key] = new_side
             changed = True
@@ -321,10 +471,15 @@ def check_alerts(alerts, state):
         if old_side == new_side:
             continue
 
-        direction = "ВВЕРХ ⬆️" if new_side == "above" else "ВНИЗ ⬇️"
+        direction = (
+            "ВВЕРХ ⬆️"
+            if new_side == "above"
+            else "ВНИЗ ⬇️"
+        )
 
         send(
-            f"🔔 {ticker}: пересечение {level:g} ₽\n\n"
+            f"🔔 {ticker}: "
+            f"пересечение {level:g} ₽\n\n"
             f"Направление: {direction}\n"
             f"Текущая цена: {price:g} ₽\n\n"
             "Алерт остаётся активным."
@@ -334,13 +489,20 @@ def check_alerts(alerts, state):
         changed = True
 
     if changed:
-        save_json(STATE_FILE, state)
+        save_json(
+            STATE_FILE,
+            state
+        )
 
     return changed
 
 
 def main():
-    alerts = load_json(ALERTS_FILE, [])
+    alerts = load_json(
+        ALERTS_FILE,
+        []
+    )
+
     state = load_json(
         STATE_FILE,
         {
@@ -349,15 +511,31 @@ def main():
         }
     )
 
-    process_commands(alerts, state)
+    process_commands(
+        alerts,
+        state
+    )
 
-    # Перечитываем — команды могли изменить список
-    alerts = load_json(ALERTS_FILE, alerts)
-    state = load_json(STATE_FILE, state)
+    # Команды могли изменить alerts.json
+    alerts = load_json(
+        ALERTS_FILE,
+        alerts
+    )
 
-    check_alerts(alerts, state)
+    state = load_json(
+        STATE_FILE,
+        state
+    )
 
-    save_json(STATE_FILE, state)
+    check_alerts(
+        alerts,
+        state
+    )
+
+    save_json(
+        STATE_FILE,
+        state
+    )
 
 
 if __name__ == "__main__":
