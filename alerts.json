@@ -54,5 +54,9 @@
   {
     "ticker": "GAZP",
     "level": 84.0
+  },
+  {
+    "ticker": "SBER",
+    "level": 275.0
   }
 ]

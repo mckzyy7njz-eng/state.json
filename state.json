@@ -1,5 +1,5 @@
 {
-  "telegram_offset": 869867507,
+  "telegram_offset": 869867508,
   "sides": {
     "NVTK:850": "above",
     "TATN:420": "above",
@@ -14,6 +14,7 @@
     "MDMG:1000": "above",
     "NMTP:6.5": "above",
     "FESH:45": "above",
-    "GAZP:84": "above"
+    "GAZP:84": "above",
+    "SBER:275": "above"
   }
 }
