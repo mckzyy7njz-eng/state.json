@@ -12,9 +12,9 @@
     "X5:1750": "above",
     "IRAO:2.1": "above",
     "MDMG:1000": "above",
-    "NMTP:6.5": "below",
+    "NMTP:6.5": "above",
     "FESH:45": "above",
     "GAZP:84": "above",
-    "SBER:275": "below"
+    "SBER:275": "above"
   }
 }
